@@ -39,9 +39,13 @@ router.put("/:id", async (req, res) => {
 router.post("/add", async (req, res) => {
   try {
     console.log("Request body:", req.body); // Log the request body
-    const { accountNumber } = req.body; // Assuming the request body contains accountNumber field
+    const { accountNumber, statusDescription } = req.body; // Assuming the request body contains accountNumber field
     console.log("Account number:", accountNumber); // Log the account number
-    const newAccount = new Account({ accountNumber, assignedTo: "Unassigned" }); // Assuming the Account model schema includes assignedTo field
+    const newAccount = new Account({
+      accountNumber,
+      statusDescription,
+      assignedTo: "Unassigned",
+    }); // Assuming the Account model schema includes assignedTo field
     console.log("New account:", newAccount); // Log the new account object
     const savedAccount = await newAccount.save();
     res.status(201).json({
