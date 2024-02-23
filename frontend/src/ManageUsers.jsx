@@ -23,6 +23,10 @@ const ManageUsers = ({
     fetchUsers();
   }, [setPossibleUsers]);
 
+  const filteredUsers = possibleUsers.filter(
+    (user) => user._id !== "65d90614921279a032a52e7f"
+  ); // Filter out the designated user
+
   const addNewUser = async () => {
     try {
       const response = await axios.post("http://localhost:5000/api/users", {
@@ -77,7 +81,7 @@ const ManageUsers = ({
         <div>
           <h3 className="card-title">Current CSRs:</h3>
           <ul className="list-group">
-            {possibleUsers.map((user, index) => (
+            {filteredUsers.map((user, index) => (
               <li
                 key={index}
                 className="list-group-item d-flex justify-content-between align-items-center"

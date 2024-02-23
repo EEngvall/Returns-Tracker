@@ -9,7 +9,7 @@ function App() {
   const [accountNumber, setAccountNumber] = useState("");
   const [accountNumbers, setAccountNumbers] = useState([]);
   // console.log("Initial accountNumbers state:", accountNumbers);
-
+  const [rerenderTable, setRerenderTable] = useState(false); // State variable for triggering table re-render
   const [sortingCriteria, setSortingCriteria] = useState("");
   const [sortingUser, setSortingUser] = useState("");
   const [sortingStatus, setSortingStatus] = useState("");
@@ -20,6 +20,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [accountsPerPage, setAccountsPerPage] = useState(5); // Number of accounts per page
   const fileInputRef = useRef(null); // Ref for the file input element
+  const [assignmentChanges, setAssignmentChanges] = useState(0); // State variable to track assignment changes
 
   // Calculate the index of the last account on the current page
   const indexOfLastAccount = currentPage * accountsPerPage;
@@ -38,10 +39,12 @@ function App() {
   // Function to add a new account
   const addAccount = async () => {
     try {
+      const defaultUserId = "65d90614921279a032a52e7f";
       const response = await axios.post(
         "http://localhost:5000/api/accounts/add",
         {
           accountNumber,
+          assignedTo: defaultUserId,
         }
       );
       console.log("Response from server:", response); // Log the entire response
@@ -53,9 +56,20 @@ function App() {
       ]);
       setAccountNumber(""); // Clear the input field
       console.log("Account added successfully");
+
+      // Trigger a re-render of the table by updating a state variable
+      setRerenderTable((prev) => !prev);
     } catch (error) {
       console.error("Error adding account:", error);
     }
+  };
+
+  // Function to get user's name by ID
+  const getUsernameById = (userId) => {
+    // Find the user object with the matching ID
+    const user = possibleUsers.find((user) => user._id === userId);
+    // Return the username if the user is found, otherwise return "Unassigned"
+    return user ? user.username : "Unassigned";
   };
 
   // Function to add a new user
@@ -159,29 +173,30 @@ function App() {
     setCurrentPage(1); // Reset current page to 1 when changing accounts per page
   };
 
-  // Function to handle sorting criteria change
-  const handleSortingChange = (e) => {
-    setSortingCriteria(e.target.value);
-    setSortingUser(""); // Reset sorting user when sorting criteria changes
-    setSortingStatus(""); // Reset sorting status when sorting criteria changes
-    setSortDirection(""); // Reset sorting direction when sorting criteria changes
-  };
-
-  // Function to handle sorting user change
-  const handleSortingUserChange = (e) => {
-    setSortingUser(e.target.value);
-  };
-
-  // Function to handle sorting status change
-  const handleSortingStatusChange = (e) => {
-    setSortingStatus(e.target.value);
+  // Function to handle sorting
+  const handleSort = (criteria) => {
+    // Update sorting direction if the same criteria is clicked again
+    if (sortingCriteria === criteria) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Reset sorting direction if a new criteria is selected
+      setSortDirection("asc");
+    }
+    setSortingCriteria(criteria);
   };
 
   useEffect(() => {
     // Function to filter and sort account numbers
     const filterAndSortAccountNumbers = () => {
       let sortedNumbers = [...accountNumbers];
-      if (sortingCriteria === "assignedTo") {
+
+      if (sortingCriteria === "accountNumber") {
+        sortedNumbers.sort((a, b) =>
+          sortDirection === "asc"
+            ? a.accountNumber.localeCompare(b.accountNumber)
+            : b.accountNumber.localeCompare(a.accountNumber)
+        );
+      } else if (sortingCriteria === "assignedTo") {
         if (sortingUser) {
           // Filter accounts by selected user
           sortedNumbers = sortedNumbers.filter(
@@ -189,7 +204,24 @@ function App() {
           );
         }
         sortedNumbers.sort((a, b) =>
-          a.assignedTo > b.assignedTo ? 1 : b.assignedTo > a.assignedTo ? -1 : 0
+          sortDirection === "asc"
+            ? a.assignedTo.localeCompare(b.assignedTo)
+            : b.assignedTo.localeCompare(a.assignedTo)
+        );
+      } else if (sortingCriteria === "statusDescription") {
+        sortedNumbers.sort((a, b) => {
+          const statusA = a.statusDescription || ""; // Ensure statusDescription is defined or fallback to an empty string
+          const statusB = b.statusDescription || ""; // Ensure statusDescription is defined or fallback to an empty string
+
+          return sortDirection === "asc"
+            ? statusA.localeCompare(statusB)
+            : statusB.localeCompare(statusA);
+        });
+      } else if (sortingCriteria === "createdAt") {
+        sortedNumbers.sort((a, b) =>
+          sortDirection === "asc"
+            ? new Date(a.createdAt) - new Date(b.createdAt)
+            : new Date(b.createdAt) - new Date(a.createdAt)
         );
       } else if (sortingCriteria === "completed") {
         if (sortingStatus) {
@@ -199,13 +231,18 @@ function App() {
             (account) => account.checked === isCompleted
           );
         }
-        sortedNumbers.sort((a, b) =>
-          a.checked === b.checked ? 0 : a.checked ? 1 : -1
-        );
+        sortedNumbers.sort((a, b) => {
+          if (a.checked === b.checked) return 0;
+          return sortDirection === "asc"
+            ? a.checked
+              ? 1
+              : -1
+            : a.checked
+            ? -1
+            : 1;
+        });
       }
-      if (sortDirection === "desc") {
-        sortedNumbers.reverse();
-      }
+
       return sortedNumbers;
     };
 
@@ -283,6 +320,9 @@ function App() {
         assignedTo,
       });
       console.log("AssignedTo updated successfully:", assignedTo);
+
+      // Increment assignment changes to trigger rerender
+      setAssignmentChanges((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating assignedTo:", error);
       // Handle error if needed
@@ -319,12 +359,14 @@ function App() {
           const statusDescription = values[statusDescriptionIndex];
 
           try {
+            const defaultUserId = "65d90614921279a032a52e7f";
             // Create a new account object and add it to the database
             const response = await axios.post(
               "http://localhost:5000/api/accounts/add",
               {
                 accountNumber,
                 statusDescription,
+                assignedTo: defaultUserId,
               }
             );
             console.log("Account added successfully:", response.data.account);
@@ -343,6 +385,7 @@ function App() {
   };
 
   // Function to render each account row
+  // Function to render each account row
   const renderAccountRow = (account, index) => (
     <tr key={index} className={account.checked ? "table-success" : ""}>
       <td>{account.accountNumber}</td>
@@ -352,8 +395,9 @@ function App() {
           value={account.assignedTo}
           onChange={(e) => handleUserAssignmentChange(index, e.target.value)}
         >
-          {possibleUsers.map((user, index) => (
-            <option key={index} value={user.username}>
+          <option value="">Unassigned</option>
+          {possibleUsers.map((user) => (
+            <option key={user._id} value={user._id}>
               {user.username}
             </option>
           ))}
@@ -367,8 +411,7 @@ function App() {
           onChange={() => handleCheckboxToggle(index)}
         />
       </td>
-      <td>{new Date(account.createdAt).toLocaleDateString("en-US")}</td>{" "}
-      {/* Display createdAt field with mm/dd/yy format */}
+      <td>{new Date(account.createdAt).toLocaleDateString("en-US")}</td>
       <td>
         <button
           className="btn btn-danger btn-sm"
@@ -414,54 +457,6 @@ function App() {
               />
             </div>
           </form>
-          {/* Sorting filters */}
-          <div className="mt-4">
-            <label htmlFor="sortingCriteria">Sort by:</label>
-            <select
-              id="sortingCriteria"
-              className="form-select"
-              value={sortingCriteria}
-              onChange={handleSortingChange}
-            >
-              <option value="">None</option>
-              <option value="assignedTo">Assigned User</option>
-              <option value="completed">Completion Status</option>
-            </select>
-            {sortingCriteria === "assignedTo" && (
-              <div className="mt-2">
-                <label htmlFor="sortingUser">Select User:</label>
-                <select
-                  id="sortingUser"
-                  className="form-select"
-                  value={sortingUser}
-                  onChange={handleSortingUserChange}
-                >
-                  <option value="">All Users</option>
-                  {possibleUsers.map((user, index) => (
-                    <option key={index} value={user}>
-                      {user}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {sortingCriteria === "completed" && (
-              <div className="mt-2">
-                <label htmlFor="sortingStatus">Select :</label>
-                <select
-                  id="sortingStatus" // Unique ID for sorting status dropdown
-                  className="form-select"
-                  value={sortingStatus}
-                  onChange={handleSortingStatusChange}
-                >
-                  <option value="">All</option>
-                  <option value="completed">Completed</option>
-                  <option value="uncompleted">Uncompleted</option>
-                </select>
-              </div>
-            )}
-          </div>
 
           <div className="mt-4">
             <h2>Account Numbers:</h2>
@@ -469,15 +464,39 @@ function App() {
               {/* Table headers */}
               <thead>
                 <tr>
-                  <th onClick={handleSortDirectionChange}>Account Number</th>
-                  <th onClick={handleSortDirectionChange}>Assigned To</th>
-                  <th onClick={handleSortDirectionChange}>
+                  <th
+                    onClick={() => handleSort("accountNumber")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Account Number
+                  </th>
+                  <th
+                    onClick={() => handleSort("assignedTo")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Assigned To
+                  </th>
+                  <th
+                    onClick={() => handleSort("statusDescription")}
+                    style={{ cursor: "pointer" }}
+                  >
                     Status Description
                   </th>
-                  <th onClick={handleSortDirectionChange}>Completed</th>
-                  <th>Created</th>
+                  <th
+                    onClick={() => handleSort("completed")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Completed
+                  </th>
+                  <th
+                    onClick={() => handleSort("createdAt")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    Created
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
                 {currentAccounts.map((account, index) =>
                   renderAccountRow(account, index)

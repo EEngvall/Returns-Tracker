@@ -15,11 +15,12 @@ function Dashboard({ accountNumbers }) {
     }
   };
 
-  // Fetch users when the component mounts
+  // Fetch users when the component mounts and whenever the list of users changes
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [users]); // Trigger the effect whenever the users state changes
 
+  // Function to calculate the summary
   // Function to calculate the summary
   const calculateSummary = () => {
     // Initialize summary object to keep track of counts for each user and state
@@ -54,18 +55,22 @@ function Dashboard({ accountNumbers }) {
       // Get the assigned user for the account
       const assignedTo = account.assignedTo || "Unassigned";
 
+      // Get the username corresponding to the assignedTo ID
+      const user = users.find((user) => user._id === assignedTo);
+
       // Increment the completed or uncompleted count for the user
-      if (!summary.users[assignedTo]) {
-        summary.users[assignedTo] = {
+      const userName = user ? user.username : "Unassigned";
+      if (!summary.users[userName]) {
+        summary.users[userName] = {
           completed: account.checked ? 1 : 0,
           uncompleted: account.checked ? 0 : 1,
           color: colors[index % colors.length],
         };
       } else {
         if (account.checked) {
-          summary.users[assignedTo].completed++;
+          summary.users[userName].completed++;
         } else {
-          summary.users[assignedTo].uncompleted++;
+          summary.users[userName].uncompleted++;
         }
       }
     });
