@@ -1,25 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Pagination } from "react-bootstrap";
 import Dashboard from "./Dashboard";
+import ManageUsers from "./ManageUsers";
 import axios from "axios"; // Import axios
 
 function App() {
   // State to store the entered account numbers, their checked status, and assigned user
   const [accountNumber, setAccountNumber] = useState("");
   const [accountNumbers, setAccountNumbers] = useState([]);
+  // console.log("Initial accountNumbers state:", accountNumbers);
+
   const [sortingCriteria, setSortingCriteria] = useState("");
   const [sortingUser, setSortingUser] = useState("");
   const [sortingStatus, setSortingStatus] = useState("");
   const [sortedAccountNumbers, setSortedAccountNumbers] = useState([]);
   const [sortDirection, setSortDirection] = useState("");
   const [newUser, setNewUser] = useState("");
-  const [possibleUsers, setPossibleUsers] = useState([
-    "Unassigned",
-    "Jesus",
-    "Dana B",
-    "Bobbie Jo",
-  ]);
-
+  const [possibleUsers, setPossibleUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [accountsPerPage, setAccountsPerPage] = useState(5); // Number of accounts per page
   const fileInputRef = useRef(null); // Ref for the file input element
@@ -61,22 +58,6 @@ function App() {
     }
   };
 
-  // Function to remove an account
-  const removeAccount = async (index) => {
-    try {
-      const account = accountNumbers[index];
-      const accountId = account._id; // Assuming each account has a unique ID
-      await axios.delete(
-        `http://localhost:5000/api/accounts/remove/${accountId}` // Use template literal to interpolate the accountId
-      );
-      const updatedAccountNumbers = [...accountNumbers];
-      updatedAccountNumbers.splice(index, 1);
-      setAccountNumbers(updatedAccountNumbers);
-    } catch (error) {
-      console.error("Error removing account:", error);
-    }
-  };
-
   // Function to add a new user
   const addNewUser = () => {
     if (newUser.trim() !== "") {
@@ -86,14 +67,82 @@ function App() {
   };
 
   // Function to remove a user
-  const removeUser = (userToRemove) => {
-    setPossibleUsers(possibleUsers.filter((user) => user !== userToRemove));
+  const removeUser = async (userToRemove) => {
+    try {
+      // Update the database to set the assignedTo field of accounts with the removed user to "Unassigned"
+      const updatedAccounts = accountNumbers.map((account) => {
+        if (account.assignedTo === userToRemove) {
+          // Update the assignedTo field
+          return { ...account, assignedTo: "Unassigned" };
+        }
+        return account;
+      });
+
+      // Update the accountNumbers state with the updated accounts
+      setAccountNumbers(updatedAccounts);
+
+      // Update the database with the new assignedTo values
+      updatedAccounts.forEach(async (account) => {
+        try {
+          const response = await axios.put(
+            `http://localhost:5000/api/accounts/${account._id}`,
+            {
+              assignedTo: "Unassigned",
+            }
+          );
+          console.log("Updated account:", response.data);
+        } catch (error) {
+          console.error("Error updating account:", error);
+        }
+      });
+
+      // Remove the user from the possibleUsers state
+      setPossibleUsers(possibleUsers.filter((user) => user !== userToRemove));
+      console.log("User removed successfully");
+    } catch (error) {
+      console.error("Error removing user:", error);
+    }
   };
 
-  const handleRemoveAccount = (index) => {
-    const account = accountNumbers[index];
-    console.log("Account to remove:", account); // Log the account object
-    removeAccount(index); // Pass the index to removeAccount function
+  const handleUpdateAssignments = async (removedUserId) => {
+    // Update the assignments in the accountNumbers state when a user is removed
+    const updatedAccountNumbers = accountNumbers.map((account) => {
+      if (account.assignedTo === removedUserId) {
+        return { ...account, assignedTo: "Unassigned" };
+      }
+      return account;
+    });
+    setAccountNumbers(updatedAccountNumbers);
+
+    // Update the database with the new assignedTo values
+    updatedAccountNumbers.forEach(async (account) => {
+      try {
+        const response = await axios.put(
+          `http://localhost:5000/api/accounts/${account._id}`,
+          {
+            assignedTo: account.assignedTo,
+          }
+        );
+        console.log("Updated account:", response.data);
+      } catch (error) {
+        console.error("Error updating account:", error);
+      }
+    });
+  };
+
+  const handleRemoveAccount = async (accountId) => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/accounts/remove/${accountId}`
+      );
+      const updatedAccountNumbers = accountNumbers.filter(
+        (account) => account._id !== accountId
+      );
+      setAccountNumbers(updatedAccountNumbers);
+      console.log("Account removed successfully");
+    } catch (error) {
+      console.error("Error removing account:", error);
+    }
   };
 
   // Function to handle form submission
@@ -174,14 +223,29 @@ function App() {
   const fetchAccounts = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api/accounts");
+      // console.log("Fetched accounts data:", response.data);
       setAccountNumbers(response.data); // Update accountNumbers state with fetched data
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
   };
+
   useEffect(() => {
     // Call the fetchAccounts function when the component mounts
     fetchAccounts();
+  }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/users");
+        setPossibleUsers(response.data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
   // Function to handle checkbox toggle
@@ -289,8 +353,8 @@ function App() {
           onChange={(e) => handleUserAssignmentChange(index, e.target.value)}
         >
           {possibleUsers.map((user, index) => (
-            <option key={index} value={user}>
-              {user}
+            <option key={index} value={user.username}>
+              {user.username}
             </option>
           ))}
         </select>
@@ -308,7 +372,7 @@ function App() {
       <td>
         <button
           className="btn btn-danger btn-sm"
-          onClick={() => handleRemoveAccount(index)}
+          onClick={() => handleRemoveAccount(account._id)}
         >
           Remove
         </button>
@@ -462,48 +526,14 @@ function App() {
             accountNumbers={accountNumbers}
             possibleUsers={possibleUsers}
           />
-
-          <div className="card">
-            <div className="card-body">
-              <h2 className="card-title">Manage CSRs</h2>
-              <div className="mb-3">
-                <label htmlFor="newUser" className="form-label">
-                  Add New CSR:
-                </label>
-                <div className="input-group">
-                  <input
-                    type="text"
-                    id="newUser"
-                    value={newUser}
-                    onChange={(e) => setNewUser(e.target.value)}
-                    className="form-control"
-                  />
-                  <button className="btn btn-primary" onClick={addNewUser}>
-                    Add
-                  </button>
-                </div>
-              </div>
-              <div>
-                <h3 className="card-title">Current CSRs:</h3>
-                <ul className="list-group">
-                  {possibleUsers.map((user, index) => (
-                    <li
-                      key={index}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      {user}
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => removeUser(user)}
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+          <ManageUsers
+            possibleUsers={possibleUsers}
+            addNewUser={addNewUser}
+            removeUser={removeUser}
+            newUser={newUser}
+            setNewUser={setNewUser}
+            setPossibleUsers={setPossibleUsers}
+          />
         </div>
       </div>
     </div>

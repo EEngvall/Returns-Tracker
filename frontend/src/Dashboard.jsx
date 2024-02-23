@@ -1,6 +1,25 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-function Dashboard({ accountNumbers, possibleUsers }) {
+function Dashboard({ accountNumbers }) {
+  // State to store the list of users
+  const [users, setUsers] = useState([]);
+
+  // Function to fetch users from the backend API
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/users");
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  // Fetch users when the component mounts
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   // Function to calculate the summary
   const calculateSummary = () => {
     // Initialize summary object to keep track of counts for each user and state
@@ -28,27 +47,25 @@ function Dashboard({ accountNumbers, possibleUsers }) {
       // If the account is checked (completed)
       if (account.checked) {
         summary.totalCompleted++;
-        // Increment the completed count for the user
-        if (!summary.users[account.assignedTo]) {
-          summary.users[account.assignedTo] = {
-            completed: 1,
-            uncompleted: 0,
-            color: colors[index % colors.length],
-          };
-        } else {
-          summary.users[account.assignedTo].completed++;
-        }
       } else {
         summary.totalUncompleted++;
-        // Increment the uncompleted count for the user
-        if (!summary.users[account.assignedTo]) {
-          summary.users[account.assignedTo] = {
-            completed: 0,
-            uncompleted: 1,
-            color: colors[index % colors.length],
-          };
+      }
+
+      // Get the assigned user for the account
+      const assignedTo = account.assignedTo || "Unassigned";
+
+      // Increment the completed or uncompleted count for the user
+      if (!summary.users[assignedTo]) {
+        summary.users[assignedTo] = {
+          completed: account.checked ? 1 : 0,
+          uncompleted: account.checked ? 0 : 1,
+          color: colors[index % colors.length],
+        };
+      } else {
+        if (account.checked) {
+          summary.users[assignedTo].completed++;
         } else {
-          summary.users[account.assignedTo].uncompleted++;
+          summary.users[assignedTo].uncompleted++;
         }
       }
     });
