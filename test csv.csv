@@ -1,2 +1,4 @@
-confirmation number,payment amount,service fee,total amount,payment type,Account Number,customer first name,customer last name,customer telephone,email ,Payment date/time,payment method type ,payment method,origin,channel,originator,status,Status Description,notification status
-123456,-111.49,0,-111.49,Utility Bill,9373500000,Erik,Engvall,2094177238,erik.email,2/18/2024 0:00,Checking Account,*****1234,Braintree,returns,returnsprocess,accepted,Insufficient funds,Skipped
+Account Number,Status Description
+9373500000,Insufficient funds
+123456,Unable to Locate
+27798469,Account Closed

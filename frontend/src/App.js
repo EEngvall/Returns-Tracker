@@ -237,7 +237,8 @@ function App() {
     reader.onload = async (event) => {
       const result = event.target.result;
       const lines = result.split("\n"); // Split the CSV content into lines
-      const headers = lines[0].split(","); // Get the headers from the first line
+      const headers = lines[0].split(",").map((header) => header.trim()); // Trim whitespace and newline characters
+      console.log(headers);
 
       // Find the index of the desired columns (6th and 18th)
       const accountNumberIndex = headers.indexOf("Account Number");
