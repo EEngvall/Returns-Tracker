@@ -1,0 +1,89 @@
+// In your backend/routes/accounts.js file
+
+const express = require("express");
+const router = express.Router();
+const Account = require("../models/Account"); // Assuming you have a Mongoose model for accounts
+
+// Route to update assignedTo field of an account
+// Route to update assignedTo and checked fields of an account
+router.put("/:id", async (req, res) => {
+  try {
+    const accountId = req.params.id;
+    const { assignedTo, checked } = req.body;
+
+    // Update the assignedTo and/or checked fields of the account in the database
+    const updatedAccount = await Account.findByIdAndUpdate(
+      accountId,
+      { assignedTo, checked },
+      { new: true }
+    );
+
+    if (!updatedAccount) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Account not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Account updated successfully",
+      account: updatedAccount,
+    });
+  } catch (error) {
+    console.error("Error updating account:", error);
+    res.status(500).json({ success: false, error: "Failed to update account" });
+  }
+});
+
+// Route to add a new account
+router.post("/add", async (req, res) => {
+  try {
+    console.log("Request body:", req.body); // Log the request body
+    const { accountNumber } = req.body; // Assuming the request body contains accountNumber field
+    console.log("Account number:", accountNumber); // Log the account number
+    const newAccount = new Account({ accountNumber, assignedTo: "Unassigned" }); // Assuming the Account model schema includes assignedTo field
+    console.log("New account:", newAccount); // Log the new account object
+    const savedAccount = await newAccount.save();
+    res.status(201).json({
+      success: true,
+      message: "Account added successfully",
+      account: savedAccount,
+    });
+  } catch (error) {
+    console.error("Error adding account:", error);
+    res.status(500).json({ success: false, error: "Failed to add account" });
+  }
+});
+
+// Route to remove an account
+router.delete("/remove/:id", async (req, res) => {
+  try {
+    const accountId = req.params.id;
+    console.log("Deleting account with ID:", accountId); // Log the ID of the account being deleted
+    const deletedAccount = await Account.findByIdAndDelete(accountId);
+    if (!deletedAccount) {
+      console.log("Account not found for deletion:", accountId); // Log if account was not found
+      return res
+        .status(404)
+        .json({ success: false, error: "Account not found" });
+    }
+    console.log("Account removed successfully:", deletedAccount); // Log the deleted account object
+    res.json({ success: true, message: "Account removed successfully" });
+  } catch (error) {
+    console.error("Error removing account:", error);
+    res.status(500).json({ success: false, error: "Failed to remove account" });
+  }
+});
+
+// Route to fetch all accounts
+router.get("/", async (req, res) => {
+  try {
+    const accounts = await Account.find();
+    res.json(accounts);
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch accounts" });
+  }
+});
+
+module.exports = router;
