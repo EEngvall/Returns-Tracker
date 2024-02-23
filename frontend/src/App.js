@@ -36,26 +36,25 @@ function App() {
     indexOfLastAccount
   );
 
+  const apiUrl = process.env.REACT_APP_API_URL;
+
   // Function to add a new account
   const addAccount = async () => {
     try {
       const defaultUserId = "65d90614921279a032a52e7f";
-      const response = await axios.post(
-        "http://localhost:5000/api/accounts/add",
-        {
-          accountNumber,
-          assignedTo: defaultUserId,
-        }
-      );
-      console.log("Response from server:", response); // Log the entire response
+      const response = await axios.post(apiUrl + "/api/accounts/add", {
+        accountNumber,
+        assignedTo: defaultUserId,
+      });
+      // console.log("Response from server:", response); // Log the entire response
       const { account } = response.data; // Extract the account object from the response
-      console.log("Extracted account:", account); // Log the extracted account object
+      // console.log("Extracted account:", account); // Log the extracted account object
       setAccountNumbers([
         ...accountNumbers,
         { ...account, checked: false }, // Include the retrieved account details
       ]);
       setAccountNumber(""); // Clear the input field
-      console.log("Account added successfully");
+      // console.log("Account added successfully");
 
       // Trigger a re-render of the table by updating a state variable
       setRerenderTable((prev) => !prev);
@@ -99,12 +98,12 @@ function App() {
       updatedAccounts.forEach(async (account) => {
         try {
           const response = await axios.put(
-            `http://localhost:5000/api/accounts/${account._id}`,
+            apiUrl + `/api/accounts/${account._id}`,
             {
               assignedTo: "Unassigned",
             }
           );
-          console.log("Updated account:", response.data);
+          // console.log("Updated account:", response.data);
         } catch (error) {
           console.error("Error updating account:", error);
         }
@@ -112,7 +111,7 @@ function App() {
 
       // Remove the user from the possibleUsers state
       setPossibleUsers(possibleUsers.filter((user) => user !== userToRemove));
-      console.log("User removed successfully");
+      // console.log("User removed successfully");
     } catch (error) {
       console.error("Error removing user:", error);
     }
@@ -132,12 +131,12 @@ function App() {
     updatedAccountNumbers.forEach(async (account) => {
       try {
         const response = await axios.put(
-          `http://localhost:5000/api/accounts/${account._id}`,
+          apiUrl + `/api/accounts/${account._id}`,
           {
             assignedTo: account.assignedTo,
           }
         );
-        console.log("Updated account:", response.data);
+        // console.log("Updated account:", response.data);
       } catch (error) {
         console.error("Error updating account:", error);
       }
@@ -146,14 +145,12 @@ function App() {
 
   const handleRemoveAccount = async (accountId) => {
     try {
-      await axios.delete(
-        `http://localhost:5000/api/accounts/remove/${accountId}`
-      );
+      await axios.delete(apiUrl + `/api/accounts/remove/${accountId}`);
       const updatedAccountNumbers = accountNumbers.filter(
         (account) => account._id !== accountId
       );
       setAccountNumbers(updatedAccountNumbers);
-      console.log("Account removed successfully");
+      // console.log("Account removed successfully");
     } catch (error) {
       console.error("Error removing account:", error);
     }
@@ -259,7 +256,9 @@ function App() {
   // Function to fetch account data from backend API
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/accounts");
+      const response = await axios.get(
+        "https://returns-tracker-db.onrender.com/api/accounts"
+      );
       // console.log("Fetched accounts data:", response.data);
       setAccountNumbers(response.data); // Update accountNumbers state with fetched data
     } catch (error) {
@@ -275,7 +274,7 @@ function App() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/users");
+        const response = await axios.get(apiUrl + "/api/users");
         setPossibleUsers(response.data);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -296,7 +295,7 @@ function App() {
 
       // Send a request to update the checked field in the backend
       const accountId = updatedAccountNumbers[index]._id; // Assuming each account has a unique ID
-      await axios.put(`http://localhost:5000/api/accounts/${accountId}`, {
+      await axios.put(apiUrl + `/api/accounts/${accountId}`, {
         checked: updatedAccountNumbers[index].checked,
       });
       console.log("Checked status updated successfully");
@@ -316,7 +315,7 @@ function App() {
 
       // Send a request to update the assignedTo field in the backend
       const accountId = updatedAccountNumbers[index]._id; // Assuming each account has a unique ID
-      await axios.put(`http://localhost:5000/api/accounts/${accountId}`, {
+      await axios.put(apiUrl + `/api/accounts/${accountId}`, {
         assignedTo,
       });
       console.log("AssignedTo updated successfully:", assignedTo);
@@ -361,14 +360,11 @@ function App() {
           try {
             const defaultUserId = "65d90614921279a032a52e7f";
             // Create a new account object and add it to the database
-            const response = await axios.post(
-              "http://localhost:5000/api/accounts/add",
-              {
-                accountNumber,
-                statusDescription,
-                assignedTo: defaultUserId,
-              }
-            );
+            const response = await axios.post(apiUrl + "/api/accounts/add", {
+              accountNumber,
+              statusDescription,
+              assignedTo: defaultUserId,
+            });
             console.log("Account added successfully:", response.data.account);
           } catch (error) {
             console.error("Error adding account:", error);
@@ -395,7 +391,6 @@ function App() {
           value={account.assignedTo}
           onChange={(e) => handleUserAssignmentChange(index, e.target.value)}
         >
-          <option value="">Unassigned</option>
           {possibleUsers.map((user) => (
             <option key={user._id} value={user._id}>
               {user.username}

@@ -8,11 +8,12 @@ const ManageUsers = ({
 }) => {
   const [newUser, setNewUser] = useState("");
   const [loading, setLoading] = useState(true);
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/users");
+        const response = await axios.get(apiUrl + "/api/users");
         setPossibleUsers(response.data);
         setLoading(false);
       } catch (error) {
@@ -29,7 +30,7 @@ const ManageUsers = ({
 
   const addNewUser = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/api/users", {
+      const response = await axios.post(apiUrl + "/api/users", {
         username: newUser,
       });
       setPossibleUsers((prevUsers) => [...prevUsers, response.data]);
@@ -41,7 +42,7 @@ const ManageUsers = ({
 
   const removeUser = async (userId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/users/${userId}`);
+      await axios.delete(apiUrl + `/api/users/${userId}`);
       setPossibleUsers((prevUsers) =>
         prevUsers.filter((user) => user._id !== userId)
       );

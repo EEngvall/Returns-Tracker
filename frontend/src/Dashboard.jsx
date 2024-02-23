@@ -4,11 +4,12 @@ import axios from "axios";
 function Dashboard({ accountNumbers }) {
   // State to store the list of users
   const [users, setUsers] = useState([]);
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   // Function to fetch users from the backend API
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/users");
+      const response = await axios.get(apiUrl + "/api/users");
       setUsers(response.data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -18,7 +19,7 @@ function Dashboard({ accountNumbers }) {
   // Fetch users when the component mounts and whenever the list of users changes
   useEffect(() => {
     fetchUsers();
-  }, [users]); // Trigger the effect whenever the users state changes
+  }, []); // Trigger the effect whenever the users state changes
 
   // Function to calculate the summary
   // Function to calculate the summary
