@@ -256,9 +256,7 @@ function App() {
   // Function to fetch account data from backend API
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get(
-        "https://returns-tracker-db.onrender.com/api/accounts"
-      );
+      const response = await axios.get(apiUrl + "/api/accounts");
       // console.log("Fetched accounts data:", response.data);
       setAccountNumbers(response.data); // Update accountNumbers state with fetched data
     } catch (error) {
