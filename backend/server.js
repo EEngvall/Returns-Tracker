@@ -6,34 +6,6 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 const mongoURI = process.env.MONGO_URI;
 
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from "@aws-sdk/client-secrets-manager";
-
-const secret_name = "mongoDB-URI";
-
-const client = new SecretsManagerClient({
-  region: "us-west-1",
-});
-
-let response;
-
-try {
-  response = await client.send(
-    new GetSecretValueCommand({
-      SecretId: secret_name,
-      VersionStage: "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified
-    })
-  );
-} catch (error) {
-  // For a list of exceptions thrown, see
-  // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-  throw error;
-}
-
-const secret = response.SecretString;
-
 const accountsRouter = require("./routes/accounts");
 const usersRouter = require("./routes/users");
 
@@ -48,7 +20,7 @@ app.use(cors());
 
 // Connect to MongoDB
 mongoose
-  .connect(secret, clientOptions)
+  .connect(mongoURI, clientOptions)
   .then(() => console.log("Connected to MongoDB"))
   .catch((error) => console.error("MongoDB connection error:", error));
 
